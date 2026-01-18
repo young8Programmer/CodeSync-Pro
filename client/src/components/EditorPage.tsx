@@ -31,9 +31,53 @@ const EditorPage: React.FC = () => {
   const [result, setResult] = useState<CodeResult | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [userId] = useState(() => `user-${Math.random().toString(36).substr(2, 9)}`);
+  const [userColors] = useState<{ [key: string]: string }>({});
   const editorRef = useRef<any>(null);
   const socketRef = useRef<any>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToast({ message, type });
+    setTimeout(() => setToast(null), 3000);
+  };
+
+  const copyRoomLink = () => {
+    const url = `${window.location.origin}/room/${roomId}`;
+    navigator.clipboard.writeText(url).then(() => {
+      showToast('Room link copied to clipboard!');
+    });
+  };
+
+  const exportCode = () => {
+    const fileExtension = language === 'javascript' ? 'js' : 
+                         language === 'python' ? 'py' :
+                         language === 'java' ? 'java' :
+                         language === 'cpp' ? 'cpp' :
+                         language === 'c' ? 'c' :
+                         language === 'php' ? 'php' :
+                         language === 'typescript' ? 'ts' : 'txt';
+    
+    const blob = new Blob([code], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `code.${fileExtension}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('Code exported successfully!');
+  };
+
+  const getUserColor = (id: string): string => {
+    if (!userColors[id]) {
+      const colors = ['#667eea', '#764ba2', '#f093fb', '#4facfe', '#43e97b', '#fa709a', '#fee140', '#30cfd0'];
+      userColors[id] = colors[Object.keys(userColors).length % colors.length];
+    }
+    return userColors[id];
+  };
 
   useEffect(() => {
     if (!roomId) {
@@ -87,7 +131,7 @@ const EditorPage: React.FC = () => {
     });
 
     socket.on('code-saved', () => {
-      // Show saved notification if needed
+      showToast('Code saved successfully!');
     });
 
     socket.on('error', (data: { message: string }) => {
@@ -234,6 +278,12 @@ const EditorPage: React.FC = () => {
         </div>
 
         <div className="editor-header-right">
+          <button className="btn btn-icon" onClick={copyRoomLink} title="Copy room link">
+            🔗
+          </button>
+          <button className="btn btn-icon" onClick={exportCode} title="Export code">
+            📥
+          </button>
           <button className="btn btn-secondary" onClick={handleSaveCode}>
             💾 Save
           </button>
@@ -299,6 +349,12 @@ const EditorPage: React.FC = () => {
           </div>
         )}
       </div>
+
+      {toast && (
+        <div className={`toast toast-${toast.type}`}>
+          {toast.type === 'success' ? '✅' : '❌'} {toast.message}
+        </div>
+      )}
     </div>
   );
 };
