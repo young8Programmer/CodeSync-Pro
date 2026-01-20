@@ -34,9 +34,18 @@ const EditorPage: React.FC = () => {
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const [userId] = useState(() => `user-${Math.random().toString(36).substr(2, 9)}`);
   const [userColors] = useState<{ [key: string]: string }>({});
+  const [showStats, setShowStats] = useState(false);
   const editorRef = useRef<any>(null);
   const socketRef = useRef<any>(null);
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  const getCodeStats = () => {
+    const lines = code.split('\n').length;
+    const characters = code.length;
+    const charactersNoSpaces = code.replace(/\s/g, '').length;
+    const words = code.trim() ? code.trim().split(/\s+/).length : 0;
+    return { lines, characters, charactersNoSpaces, words };
+  };
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
     setToast({ message, type });
@@ -261,6 +270,13 @@ const EditorPage: React.FC = () => {
             <span className="room-id">Room: {roomId}</span>
             <span className="active-users">👥 {activeUsers} active</span>
           </div>
+          <button 
+            className="btn-icon stats-btn" 
+            onClick={() => setShowStats(!showStats)}
+            title="Code statistics"
+          >
+            📊
+          </button>
         </div>
 
         <div className="editor-header-center">
@@ -353,6 +369,40 @@ const EditorPage: React.FC = () => {
       {toast && (
         <div className={`toast toast-${toast.type}`}>
           {toast.type === 'success' ? '✅' : '❌'} {toast.message}
+        </div>
+      )}
+
+      {showStats && (
+        <div className="stats-panel">
+          <div className="stats-header">
+            <h4>Code Statistics</h4>
+            <button className="btn-close" onClick={() => setShowStats(false)}>×</button>
+          </div>
+          <div className="stats-content">
+            {(() => {
+              const stats = getCodeStats();
+              return (
+                <>
+                  <div className="stat-item">
+                    <span className="stat-label">Lines:</span>
+                    <span className="stat-value">{stats.lines}</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Characters:</span>
+                    <span className="stat-value">{stats.characters}</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Characters (no spaces):</span>
+                    <span className="stat-value">{stats.charactersNoSpaces}</span>
+                  </div>
+                  <div className="stat-item">
+                    <span className="stat-label">Words:</span>
+                    <span className="stat-value">{stats.words}</span>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
         </div>
       )}
     </div>
